@@ -34,11 +34,16 @@ export function Sidebar() {
 
   return (
     <div className="flex flex-col w-64 border-r bg-white dark:bg-zinc-950 px-4 py-8 h-full">
-      <div className="flex items-center gap-2 px-2 mb-8">
-        <div className="h-8 w-8 bg-zinc-900 dark:bg-white rounded-md flex items-center justify-center">
-          <span className="text-white dark:text-zinc-900 font-bold text-lg leading-none">M</span>
-        </div>
-        <span className="font-semibold text-lg tracking-tight">Elevate Portal</span>
+      <div className="flex items-center justify-start mb-8 px-2">
+        <Link href="/overview" className="block w-full">
+          <div className="bg-white p-2 rounded-lg border border-zinc-200 dark:border-zinc-800 shadow-xs flex justify-center">
+            <img 
+              src="/logo.png" 
+              alt="Mario Elevate Logo" 
+              className="h-14 w-auto object-contain"
+            />
+          </div>
+        </Link>
       </div>
 
       <nav className="flex-1 space-y-1">

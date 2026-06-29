@@ -45,8 +45,12 @@ export default function LoginPage() {
       <Card className="w-full max-w-md">
         <CardHeader className="space-y-2 text-center">
           <div className="flex justify-center mb-4">
-            <div className="h-12 w-12 bg-zinc-900 dark:bg-white rounded-xl flex items-center justify-center">
-              <span className="text-white dark:text-zinc-900 font-bold text-2xl leading-none">M</span>
+            <div className="bg-white p-2 rounded-xl border border-zinc-200 dark:border-zinc-800 shadow-sm">
+              <img 
+                src="/logo.png" 
+                alt="Mario Elevate Logo" 
+                className="h-18 w-auto object-contain"
+              />
             </div>
           </div>
           <CardTitle className="text-2xl font-bold tracking-tight">Welcome back</CardTitle>

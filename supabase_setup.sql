@@ -13,6 +13,13 @@ CREATE TABLE candidates (
   preferred_location TEXT,
   resume_url TEXT,
   resume_filename TEXT,
+  remarks TEXT,
+  notice_period TEXT,
+  current_ctc TEXT,
+  expected_ctc TEXT,
+  status TEXT DEFAULT 'Pending',
+  offered_ctc TEXT,
+  job_type TEXT,
   created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
   updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );

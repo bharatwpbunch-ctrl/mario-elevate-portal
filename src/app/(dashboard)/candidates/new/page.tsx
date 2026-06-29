@@ -14,6 +14,13 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Textarea } from "@/components/ui/textarea"
 import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select"
+import {
   Form,
   FormControl,
   FormDescription,
@@ -38,6 +45,13 @@ const formSchema = z.object({
   email: z.string().email("Invalid email address"),
   phone: z.string().min(10, "Phone number is required"),
   skills: z.string().min(1, "At least one skill is required"),
+  remarks: z.string().optional(),
+  noticePeriod: z.string().optional(),
+  currentCtc: z.string().optional(),
+  expectedCtc: z.string().optional(),
+  status: z.enum(["Pending", "Offered", "Selected", "Rejected"]).default("Pending"),
+  offeredCtc: z.string().optional(),
+  jobType: z.string().optional(),
 })
 
 export default function AddCandidatePage() {
@@ -60,8 +74,17 @@ export default function AddCandidatePage() {
       email: "",
       phone: "",
       skills: "",
+      remarks: "",
+      noticePeriod: "",
+      currentCtc: "",
+      expectedCtc: "",
+      status: "Pending",
+      offeredCtc: "",
+      jobType: "",
     },
   })
+
+  const watchStatus = form.watch("status")
 
   async function onSubmit(values: z.infer<typeof formSchema>) {
     if (!resumeFile) {
@@ -128,6 +151,13 @@ export default function AddCandidatePage() {
           skills: skillsArray,
           resume_url: publicUrlData.publicUrl,
           resume_filename: resumeFile.name,
+          remarks: values.remarks || null,
+          notice_period: values.noticePeriod || null,
+          current_ctc: values.currentCtc || null,
+          expected_ctc: values.expectedCtc || null,
+          status: values.status,
+          offered_ctc: values.status === "Offered" ? (values.offeredCtc || null) : null,
+          job_type: values.status === "Offered" ? (values.jobType || null) : null,
         })
 
       if (insertError) {
@@ -304,6 +334,128 @@ export default function AddCandidatePage() {
                   </FormItem>
                 )}
               />
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader>
+              <CardTitle>Interview & Status Details</CardTitle>
+            </CardHeader>
+            <CardContent className="grid gap-6 md:grid-cols-2">
+              <FormField
+                control={form.control}
+                name="remarks"
+                render={({ field }) => (
+                  <FormItem className="md:col-span-2">
+                    <FormLabel>Remarks / Interview Details</FormLabel>
+                    <FormControl>
+                      <Textarea placeholder="Notes about the interview or candidate" className="resize-none" {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              <FormField
+                control={form.control}
+                name="noticePeriod"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Notice Period</FormLabel>
+                    <FormControl>
+                      <Input placeholder="e.g. 30 days" {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              <FormField
+                control={form.control}
+                name="currentCtc"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Current CTC</FormLabel>
+                    <FormControl>
+                      <Input placeholder="e.g. 10 LPA" {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              <FormField
+                control={form.control}
+                name="expectedCtc"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Expected CTC</FormLabel>
+                    <FormControl>
+                      <Input placeholder="e.g. 15 LPA" {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              <FormField
+                control={form.control}
+                name="status"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Status</FormLabel>
+                    <Select onValueChange={field.onChange} value={field.value}>
+                      <FormControl>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Select a status" />
+                        </SelectTrigger>
+                      </FormControl>
+                      <SelectContent>
+                        <SelectItem value="Pending">Pending</SelectItem>
+                        <SelectItem value="Selected">Selected</SelectItem>
+                        <SelectItem value="Offered">Offered</SelectItem>
+                        <SelectItem value="Rejected">Rejected</SelectItem>
+                      </SelectContent>
+                    </Select>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              
+              {watchStatus === "Offered" && (
+                <>
+                  <FormField
+                    control={form.control}
+                    name="offeredCtc"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Offered CTC</FormLabel>
+                        <FormControl>
+                          <Input placeholder="e.g. 14 LPA" {...field} />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  <FormField
+                    control={form.control}
+                    name="jobType"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Job Type</FormLabel>
+                        <Select onValueChange={field.onChange} value={field.value}>
+                          <FormControl>
+                            <SelectTrigger>
+                              <SelectValue placeholder="Select job type" />
+                            </SelectTrigger>
+                          </FormControl>
+                          <SelectContent>
+                            <SelectItem value="Fulltime">Fulltime</SelectItem>
+                            <SelectItem value="Contractual">Contractual</SelectItem>
+                          </SelectContent>
+                        </Select>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                </>
+              )}
             </CardContent>
           </Card>
 

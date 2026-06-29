@@ -25,7 +25,14 @@ export type Candidate = {
   email: string
   phone: string
   skills: string[]
+  status: string
   created_at: string
+  remarks?: string
+  notice_period?: string
+  current_ctc?: string
+  expected_ctc?: string
+  offered_ctc?: string
+  job_type?: string
 }
 
 const ActionCell = ({ candidate }: { candidate: Candidate }) => {
@@ -85,6 +92,20 @@ export const columns: ColumnDef<Candidate>[] = [
   {
     accessorKey: "phone",
     header: "Phone",
+  },
+  {
+    accessorKey: "status",
+    header: "Status",
+    cell: ({ row }) => {
+      const status = row.getValue("status") as string || "Pending"
+      let variant: "default" | "secondary" | "destructive" | "outline" = "secondary"
+      
+      if (status === "Offered") variant = "default"
+      if (status === "Selected") variant = "default"
+      if (status === "Rejected") variant = "destructive"
+      
+      return <Badge variant={variant}>{status}</Badge>
+    }
   },
   {
     id: "actions",

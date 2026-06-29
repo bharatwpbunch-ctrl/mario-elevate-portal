@@ -5,6 +5,9 @@ import { createClient } from "@/lib/supabase/client"
 import { Candidate, columns } from "./columns"
 import { DataTable } from "./data-table"
 import { toast } from "sonner"
+import * as XLSX from "xlsx"
+import { Download } from "lucide-react"
+import { Button } from "@/components/ui/button"
 
 export default function CandidatesPage() {
   const [data, setData] = useState<Candidate[]>([])
@@ -46,10 +49,39 @@ export default function CandidatesPage() {
     )
   })
 
+  const exportToExcel = () => {
+    const exportData = filteredData.map((c) => ({
+      "Name": c.full_name,
+      "Email": c.email,
+      "Phone": c.phone,
+      "Occupation": c.occupation,
+      "Experience (Years)": c.experience_years,
+      "Location": c.location || "",
+      "Skills": Array.isArray(c.skills) ? c.skills.join(", ") : c.skills,
+      "Status": c.status || "Pending",
+      "Notice Period": c.notice_period || "",
+      "Current CTC": c.current_ctc || "",
+      "Expected CTC": c.expected_ctc || "",
+      "Offered CTC": c.offered_ctc || "",
+      "Job Type": c.job_type || "",
+      "Remarks": c.remarks || "",
+      "Created At": new Date(c.created_at).toLocaleDateString()
+    }))
+
+    const worksheet = XLSX.utils.json_to_sheet(exportData)
+    const workbook = XLSX.utils.book_new()
+    XLSX.utils.book_append_sheet(workbook, worksheet, "Candidates")
+    XLSX.writeFile(workbook, "candidates_export.xlsx")
+  }
+
   return (
     <div className="flex-1 space-y-4">
       <div className="flex items-center justify-between space-y-2">
         <h2 className="text-3xl font-bold tracking-tight">Candidates</h2>
+        <Button onClick={exportToExcel} disabled={loading || filteredData.length === 0}>
+          <Download className="mr-2 h-4 w-4" />
+          Download Excel
+        </Button>
       </div>
       {loading ? (
         <div className="py-10 text-center text-zinc-500">Loading candidates...</div>

@@ -122,6 +122,56 @@ export default async function CandidateDetailsPage({
 
           <Card>
             <CardHeader>
+              <CardTitle>Interview & Status Details</CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="flex justify-between items-center">
+                <div className="font-medium">Status</div>
+                <Badge variant={candidate.status === 'Offered' || candidate.status === 'Selected' ? 'default' : candidate.status === 'Rejected' ? 'destructive' : 'secondary'}>
+                  {candidate.status || "Pending"}
+                </Badge>
+              </div>
+              {candidate.notice_period && (
+                <div>
+                  <div className="font-medium text-sm text-zinc-500">Notice Period</div>
+                  <div>{candidate.notice_period}</div>
+                </div>
+              )}
+              {candidate.current_ctc && (
+                <div>
+                  <div className="font-medium text-sm text-zinc-500">Current CTC</div>
+                  <div>{candidate.current_ctc}</div>
+                </div>
+              )}
+              {candidate.expected_ctc && (
+                <div>
+                  <div className="font-medium text-sm text-zinc-500">Expected CTC</div>
+                  <div>{candidate.expected_ctc}</div>
+                </div>
+              )}
+              {candidate.status === "Offered" && candidate.offered_ctc && (
+                <div>
+                  <div className="font-medium text-sm text-zinc-500">Offered CTC</div>
+                  <div>{candidate.offered_ctc}</div>
+                </div>
+              )}
+              {candidate.status === "Offered" && candidate.job_type && (
+                <div>
+                  <div className="font-medium text-sm text-zinc-500">Job Type</div>
+                  <div>{candidate.job_type}</div>
+                </div>
+              )}
+              {candidate.remarks && (
+                <div>
+                  <div className="font-medium text-sm text-zinc-500">Remarks</div>
+                  <p className="text-sm mt-1 whitespace-pre-wrap">{candidate.remarks}</p>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader>
               <CardTitle>Skills</CardTitle>
             </CardHeader>
             <CardContent>
