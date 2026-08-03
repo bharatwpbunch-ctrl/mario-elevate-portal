@@ -195,12 +195,12 @@ export default async function CandidateDetailsPage({
               {(() => {
                 const url = candidate.resume_url || ""
                 const filename = candidate.resume_filename || ""
-                const lowerUrl = url.toLowerCase()
-                const lowerFilename = filename.toLowerCase()
+                const cleanUrl = url.split('?')[0].split('#')[0].toLowerCase()
+                const cleanFilename = filename.toLowerCase()
 
-                const isPdf = lowerUrl.endsWith(".pdf") || lowerFilename.endsWith(".pdf")
-                const isWord = lowerUrl.endsWith(".docx") || lowerUrl.endsWith(".doc") || lowerFilename.endsWith(".docx") || lowerFilename.endsWith(".doc")
-                const isImage = lowerUrl.endsWith(".png") || lowerUrl.endsWith(".jpg") || lowerUrl.endsWith(".jpeg") || lowerFilename.endsWith(".png") || lowerFilename.endsWith(".jpg") || lowerFilename.endsWith(".jpeg")
+                const isPdf = cleanUrl.endsWith(".pdf") || cleanFilename.endsWith(".pdf")
+                const isWord = cleanUrl.endsWith(".docx") || cleanUrl.endsWith(".doc") || cleanFilename.endsWith(".docx") || cleanFilename.endsWith(".doc")
+                const isImage = cleanUrl.endsWith(".png") || cleanUrl.endsWith(".jpg") || cleanUrl.endsWith(".jpeg") || cleanFilename.endsWith(".png") || cleanFilename.endsWith(".jpg") || cleanFilename.endsWith(".jpeg")
 
                 if (isPdf) {
                   return (
