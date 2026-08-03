@@ -4,8 +4,11 @@ import { useState } from "react"
 import { useRouter } from "next/navigation"
 import { createClient } from "@/lib/supabase/client"
 import { extractTextFromPDF } from "@/lib/parse-pdf"
-import { parseResumeWithAI } from "@/app/actions/parse-resume"
+import { parseResumeWithAI, parseResumeImageWithAI } from "@/app/actions/parse-resume"
 import { parseResumeText } from "@/lib/extract-info"
+import { extractTextFromWord } from "@/lib/parse-word"
+import { readFileAsBase64 } from "@/lib/read-file"
+import { cn } from "@/lib/utils"
 import { toast } from "sonner"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -33,13 +36,11 @@ export default function BulkUploadPage() {
   const [candidates, setCandidates] = useState<BulkCandidate[]>([])
   const [isProcessing, setIsProcessing] = useState(false)
   const [isUploading, setIsUploading] = useState(false)
+  const [isDragging, setIsDragging] = useState(false)
   const router = useRouter()
   const supabase = createClient()
 
-  const handleFilesSelected = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const files = Array.from(e.target.files || [])
-    if (!files.length) return
-
+  const processFiles = async (files: File[]) => {
     if (candidates.length + files.length > MAX_FILES) {
       toast.error(`You can only process up to ${MAX_FILES} resumes at once.`)
       return
@@ -49,8 +50,12 @@ export default function BulkUploadPage() {
     const newCandidates: BulkCandidate[] = []
 
     for (const file of files) {
-      if (file.type !== "application/pdf") {
-        toast.error(`Skipped ${file.name} (Not a PDF)`)
+      const isWord = file.name.endsWith(".docx") || file.name.endsWith(".doc") || file.type === "application/vnd.openxmlformats-officedocument.wordprocessingml.document" || file.type === "application/msword";
+      const isPdf = file.type === "application/pdf" || file.name.endsWith(".pdf");
+      const isImage = file.type.startsWith("image/") || file.name.endsWith(".png") || file.name.endsWith(".jpg") || file.name.endsWith(".jpeg");
+
+      if (!isPdf && !isWord && !isImage) {
+        toast.error(`Skipped ${file.name} (Unsupported file type)`)
         continue
       }
       if (file.size > MAX_FILE_SIZE) {
@@ -59,9 +64,20 @@ export default function BulkUploadPage() {
       }
 
       try {
-        const text = await extractTextFromPDF(file)
-        const result = await parseResumeWithAI(text)
-        
+        let text = ""
+        let result: { data?: any; error?: string } = {}
+
+        if (isPdf) {
+          text = await extractTextFromPDF(file)
+          result = await parseResumeWithAI(text)
+        } else if (isWord) {
+          text = await extractTextFromWord(file)
+          result = await parseResumeWithAI(text)
+        } else if (isImage) {
+          const base64 = await readFileAsBase64(file)
+          result = await parseResumeImageWithAI(base64, file.type)
+        }
+
         if (result.error) {
           console.warn(`Gemini failed for ${file.name}, using regex fallback:`, result.error)
           toast.warning(`${file.name}: AI busy. Falling back to local parser.`)
@@ -103,7 +119,12 @@ export default function BulkUploadPage() {
 
     setCandidates(prev => [...prev, ...newCandidates])
     setIsProcessing(false)
-    // Clear input
+  }
+
+  const handleFilesSelected = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = Array.from(e.target.files || [])
+    if (!files.length) return
+    await processFiles(files)
     e.target.value = ""
   }
 
@@ -209,14 +230,39 @@ export default function BulkUploadPage() {
       <div>
         <h1 className="text-3xl font-bold tracking-tight">Bulk Upload Resumes</h1>
         <p className="text-zinc-500 dark:text-zinc-400 mt-2">
-          Upload up to {MAX_FILES} PDF resumes at once. The system will extract basic information to speed up entry.
+          Upload up to {MAX_FILES} PDF, Word, or Image resumes at once. The system will extract basic information to speed up entry.
         </p>
       </div>
 
       <Card>
         <CardContent className="pt-6">
           <div className="flex items-center justify-center w-full">
-            <label htmlFor="dropzone-file" className="flex flex-col items-center justify-center w-full h-40 border-2 border-zinc-300 border-dashed rounded-lg cursor-pointer bg-zinc-50 dark:hover:bg-bray-800 dark:bg-zinc-900 hover:bg-zinc-100 dark:border-zinc-700 dark:hover:border-zinc-500 dark:hover:bg-zinc-800 transition-colors">
+            <label 
+              htmlFor="dropzone-file" 
+              className={cn(
+                "flex flex-col items-center justify-center w-full h-40 border-2 border-dashed rounded-lg cursor-pointer transition-colors",
+                isDragging 
+                  ? "border-blue-500 bg-blue-50/50 dark:border-blue-400 dark:bg-blue-950/20" 
+                  : "border-zinc-300 bg-zinc-50 dark:border-zinc-700 dark:bg-zinc-900 hover:bg-zinc-100 dark:hover:bg-zinc-800"
+              )}
+              onDragOver={(e) => {
+                e.preventDefault()
+                setIsDragging(true)
+              }}
+              onDragLeave={(e) => {
+                e.preventDefault()
+                setIsDragging(false)
+              }}
+              onDrop={async (e) => {
+                e.preventDefault()
+                setIsDragging(false)
+                if (isProcessing || isUploading) return
+                const files = Array.from(e.dataTransfer.files || [])
+                if (files.length) {
+                  await processFiles(files)
+                }
+              }}
+            >
               <div className="flex flex-col items-center justify-center pt-5 pb-6">
                 {isProcessing ? (
                   <Loader2 className="w-8 h-8 mb-4 text-zinc-500 animate-spin" />
@@ -226,14 +272,14 @@ export default function BulkUploadPage() {
                 <p className="mb-2 text-sm text-zinc-500 dark:text-zinc-400">
                   <span className="font-semibold">{isProcessing ? "Extracting data..." : "Click to select or drag and drop"}</span>
                 </p>
-                <p className="text-xs text-zinc-500 dark:text-zinc-400">PDF up to 10MB</p>
+                <p className="text-xs text-zinc-500 dark:text-zinc-400">PDF, Word, or Image up to 10MB</p>
               </div>
               <input 
                 id="dropzone-file" 
                 type="file" 
                 className="hidden" 
                 multiple 
-                accept="application/pdf"
+                accept="application/pdf,application/vnd.openxmlformats-officedocument.wordprocessingml.document,application/msword,image/png,image/jpeg,image/jpg"
                 onChange={handleFilesSelected}
                 disabled={isProcessing || isUploading}
               />

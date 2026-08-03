@@ -103,3 +103,85 @@ ${text}`;
     };
   }
 }
+
+export async function parseResumeImageWithAI(base64: string, mimeType: string) {
+  const apiKey = process.env.GEMINI_API_KEY;
+  if (!apiKey) {
+    return {
+      error: "GEMINI_API_KEY is not set in .env.local. Please configure your Gemini API Key."
+    };
+  }
+
+  const prompt = `You are a professional resume parsing system.
+Analyze the following resume image and extract candidate information.
+Ensure you return a clean JSON matching the requested schema.`;
+
+  try {
+    const response = await fetchWithRetry(
+      `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${apiKey}`,
+      {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          contents: [{
+            parts: [
+              { text: prompt },
+              {
+                inlineData: {
+                  mimeType: mimeType,
+                  data: base64
+                }
+              }
+            ]
+          }],
+          generationConfig: {
+            responseMimeType: "application/json",
+            responseSchema: {
+              type: "OBJECT",
+              properties: {
+                fullName: { type: "STRING" },
+                email: { type: "STRING" },
+                phone: { type: "STRING" },
+                occupation: { type: "STRING" },
+                experienceYears: { type: "INTEGER" },
+                skills: { type: "ARRAY", items: { type: "STRING" } },
+                location: { type: "STRING" },
+                currentCompany: { type: "STRING" },
+                currentDesignation: { type: "STRING" },
+                preferredLocation: { type: "STRING" },
+              },
+              required: ["fullName", "email", "phone", "occupation", "experienceYears"],
+            },
+          },
+        }),
+      },
+      3,
+      1000
+    );
+
+    if (!response.ok) {
+      const errText = await response.text();
+      return {
+        error: `Failed to call Gemini API: ${response.status} ${response.statusText}. ${errText}`
+      };
+    }
+
+    const data = await response.json();
+    const rawJson = data.candidates?.[0]?.content?.parts?.[0]?.text;
+    if (!rawJson) {
+      return {
+        error: "Gemini API returned an empty or invalid response."
+      };
+    }
+
+    const parsed = JSON.parse(rawJson);
+    return { data: parsed };
+  } catch (error: any) {
+    console.error("Error parsing resume image with Gemini API:", error);
+    return {
+      error: error.message || "An unexpected error occurred while calling the Gemini API."
+    };
+  }
+}

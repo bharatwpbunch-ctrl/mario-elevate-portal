@@ -8,8 +8,10 @@ import * as z from "zod"
 import { createClient } from "@/lib/supabase/client"
 import { toast } from "sonner"
 import { extractTextFromPDF } from "@/lib/parse-pdf"
-import { parseResumeWithAI } from "@/app/actions/parse-resume"
+import { parseResumeWithAI, parseResumeImageWithAI } from "@/app/actions/parse-resume"
 import { parseResumeText } from "@/lib/extract-info"
+import { extractTextFromWord } from "@/lib/parse-word"
+import { readFileAsBase64 } from "@/lib/read-file"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Textarea } from "@/components/ui/textarea"
@@ -466,20 +468,24 @@ export default function AddCandidatePage() {
           <Card>
             <CardHeader>
               <CardTitle>Resume Upload</CardTitle>
-              <CardDescription>Upload the candidate's CV as a PDF file (Max 10MB).</CardDescription>
+              <CardDescription>Upload the candidate's CV as a PDF, Word, or Image file (Max 10MB).</CardDescription>
             </CardHeader>
             <CardContent>
               <div className="grid w-full max-w-sm items-center gap-1.5">
                 <Input 
                   id="resume" 
                   type="file" 
-                  accept="application/pdf"
+                  accept="application/pdf,application/vnd.openxmlformats-officedocument.wordprocessingml.document,application/msword,image/png,image/jpeg,image/jpg"
                   disabled={isExtracting}
                   onChange={async (e) => {
                     const file = e.target.files?.[0]
                     if (file) {
-                      if (file.type !== "application/pdf") {
-                        toast.error("Please select a valid PDF file")
+                      const isWord = file.name.endsWith(".docx") || file.name.endsWith(".doc") || file.type === "application/vnd.openxmlformats-officedocument.wordprocessingml.document" || file.type === "application/msword";
+                      const isPdf = file.type === "application/pdf" || file.name.endsWith(".pdf");
+                      const isImage = file.type.startsWith("image/") || file.name.endsWith(".png") || file.name.endsWith(".jpg") || file.name.endsWith(".jpeg");
+
+                      if (!isPdf && !isWord && !isImage) {
+                        toast.error("Please select a valid PDF, Word, or Image file")
                         e.target.value = ''
                         setResumeFile(null)
                         return
@@ -494,8 +500,19 @@ export default function AddCandidatePage() {
                       
                       try {
                         setIsExtracting(true)
-                        const text = await extractTextFromPDF(file)
-                        const result = await parseResumeWithAI(text)
+                        let text = ""
+                        let result: { data?: any; error?: string } = {}
+
+                        if (isPdf) {
+                          text = await extractTextFromPDF(file)
+                          result = await parseResumeWithAI(text)
+                        } else if (isWord) {
+                          text = await extractTextFromWord(file)
+                          result = await parseResumeWithAI(text)
+                        } else if (isImage) {
+                          const base64 = await readFileAsBase64(file)
+                          result = await parseResumeImageWithAI(base64, file.type)
+                        }
                         
                         if (result.error) {
                           console.warn("AI extraction failed, using regex fallback:", result.error)
