@@ -91,6 +91,7 @@ export default function CandidatesPage() {
           data={filteredData} 
           searchQuery={searchQuery}
           setSearchQuery={setSearchQuery}
+          totalCount={data.length}
         />
       )}
     </div>
