@@ -4,7 +4,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { buttonVariants } from "@/components/ui/button"
 import Link from "next/link"
-import { ArrowLeft, Edit, Download, Mail, Phone, MapPin, Briefcase, Building } from "lucide-react"
+import { ArrowLeft, Edit, Download, Mail, Phone, MapPin, Briefcase, Building, FileText, ImageIcon } from "lucide-react"
 
 export default async function CandidateDetailsPage({
   params,
@@ -191,12 +191,87 @@ export default async function CandidateDetailsPage({
             <CardHeader>
               <CardTitle>Resume Preview</CardTitle>
             </CardHeader>
-            <CardContent className="flex-1 p-0 rounded-b-xl overflow-hidden">
-              <iframe
-                src={`${candidate.resume_url}#view=FitH`}
-                className="w-full h-full border-0"
-                title="Resume PDF Viewer"
-              />
+            <CardContent className="flex-1 p-0 rounded-b-xl overflow-hidden bg-zinc-50 dark:bg-zinc-950">
+              {(() => {
+                const url = candidate.resume_url || ""
+                const filename = candidate.resume_filename || ""
+                const lowerUrl = url.toLowerCase()
+                const lowerFilename = filename.toLowerCase()
+
+                const isPdf = lowerUrl.endsWith(".pdf") || lowerFilename.endsWith(".pdf")
+                const isWord = lowerUrl.endsWith(".docx") || lowerUrl.endsWith(".doc") || lowerFilename.endsWith(".docx") || lowerFilename.endsWith(".doc")
+                const isImage = lowerUrl.endsWith(".png") || lowerUrl.endsWith(".jpg") || lowerUrl.endsWith(".jpeg") || lowerFilename.endsWith(".png") || lowerFilename.endsWith(".jpg") || lowerFilename.endsWith(".jpeg")
+
+                if (isPdf) {
+                  return (
+                    <iframe
+                      src={`${candidate.resume_url}#view=FitH`}
+                      className="w-full h-full border-0"
+                      title="Resume PDF Viewer"
+                    />
+                  )
+                }
+
+                if (isImage) {
+                  return (
+                    <div className="w-full h-full flex items-center justify-center p-4 overflow-auto">
+                      <img
+                        src={candidate.resume_url}
+                        alt="Resume Preview"
+                        className="max-w-full max-h-full object-contain rounded shadow-md border bg-white dark:bg-zinc-900"
+                      />
+                    </div>
+                  )
+                }
+
+                if (isWord) {
+                  return (
+                    <div className="w-full h-full flex flex-col items-center justify-center p-6 text-center">
+                      <FileText className="h-16 w-16 text-zinc-400 mb-4" />
+                      <h3 className="font-semibold text-lg text-zinc-900 dark:text-zinc-50">Word Document Preview</h3>
+                      <p className="text-zinc-500 dark:text-zinc-400 max-w-sm mt-2 mb-6 text-sm">
+                        Word documents (.docx, .doc) cannot be previewed natively in the browser. You can view it using Microsoft Office Online Viewer, or download the file directly.
+                      </p>
+                      <div className="flex flex-col sm:flex-row gap-3">
+                        <a 
+                          href={`https://view.officeapps.live.com/op/view.aspx?src=${encodeURIComponent(candidate.resume_url)}`} 
+                          target="_blank" 
+                          rel="noopener noreferrer" 
+                          className={buttonVariants({ variant: "outline" })}
+                        >
+                          View Online (Office Viewer)
+                        </a>
+                        <a 
+                          href={candidate.resume_url} 
+                          target="_blank" 
+                          rel="noopener noreferrer" 
+                          className={buttonVariants({})}
+                        >
+                          <Download className="mr-2 h-4 w-4" /> Download Resume
+                        </a>
+                      </div>
+                    </div>
+                  )
+                }
+
+                return (
+                  <div className="w-full h-full flex flex-col items-center justify-center p-6 text-center">
+                    <FileText className="h-16 w-16 text-zinc-400 mb-4" />
+                    <h3 className="font-semibold text-lg text-zinc-900 dark:text-zinc-50">Preview Not Available</h3>
+                    <p className="text-zinc-500 dark:text-zinc-400 max-w-sm mt-2 mb-6 text-sm">
+                      This file format does not support inline browser preview. Please download the file to view it.
+                    </p>
+                    <a 
+                      href={candidate.resume_url} 
+                      target="_blank" 
+                      rel="noopener noreferrer" 
+                      className={buttonVariants({})}
+                    >
+                      <Download className="mr-2 h-4 w-4" /> Download Resume
+                    </a>
+                  </div>
+                )
+              })()}
             </CardContent>
           </Card>
         </div>
