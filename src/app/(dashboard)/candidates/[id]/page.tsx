@@ -198,9 +198,19 @@ export default async function CandidateDetailsPage({
                 const cleanUrl = url.split('?')[0].split('#')[0].toLowerCase()
                 const cleanFilename = filename.toLowerCase()
 
-                const isPdf = cleanUrl.endsWith(".pdf") || cleanFilename.endsWith(".pdf")
-                const isWord = cleanUrl.endsWith(".docx") || cleanUrl.endsWith(".doc") || cleanFilename.endsWith(".docx") || cleanFilename.endsWith(".doc")
-                const isImage = cleanUrl.endsWith(".png") || cleanUrl.endsWith(".jpg") || cleanUrl.endsWith(".jpeg") || cleanFilename.endsWith(".png") || cleanFilename.endsWith(".jpg") || cleanFilename.endsWith(".jpeg")
+                // Extract extension from original filename first if available, otherwise from URL
+                const getExt = (fname: string, u: string) => {
+                  if (fname && fname.includes('.')) {
+                    return fname.split('.').pop() || ""
+                  }
+                  return u.split('?')[0].split('#')[0].split('.').pop() || ""
+                }
+
+                const ext = getExt(cleanFilename, cleanUrl)
+
+                const isPdf = ext === "pdf"
+                const isWord = ext === "docx" || ext === "doc"
+                const isImage = ext === "png" || ext === "jpg" || ext === "jpeg"
 
                 if (isPdf) {
                   return (

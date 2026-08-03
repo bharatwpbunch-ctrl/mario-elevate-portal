@@ -173,8 +173,8 @@ export default function BulkUploadPage() {
           throw new Error("Duplicate email or phone")
         }
 
-        // 2. Upload PDF
-        const fileExt = 'pdf'
+        // 2. Upload Resume
+        const fileExt = candidate.file.name.split('.').pop() || 'pdf'
         const fileName = `${Math.random().toString(36).substring(2, 15)}_${Date.now()}.${fileExt}`
         const filePath = `${fileName}`
 

@@ -204,7 +204,7 @@ export default function AddCandidatePage() {
       }
 
       // 2. Upload Resume
-      const fileExt = 'pdf'
+      const fileExt = resumeFile.name.split('.').pop() || 'pdf'
       const fileName = `${Math.random().toString(36).substring(2, 15)}_${Date.now()}.${fileExt}`
       const filePath = `${fileName}`
 
