@@ -4,7 +4,7 @@ import { ColumnDef } from "@tanstack/react-table"
 import { Badge } from "@/components/ui/badge"
 import { buttonVariants } from "@/components/ui/button"
 import { cn } from "@/lib/utils"
-import { MoreHorizontal, Eye, Edit } from "lucide-react"
+import { MoreHorizontal, Eye, Edit, Trash2 } from "lucide-react"
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -46,6 +46,30 @@ export type Candidate = {
 }
 
 const ActionCell = ({ candidate }: { candidate: Candidate }) => {
+  const router = useRouter()
+  const supabase = createClient()
+
+  const handleDelete = async () => {
+    const confirmed = window.confirm(
+      `Are you sure you want to delete ${candidate.full_name}? This action cannot be undone.`
+    )
+    if (!confirmed) return
+
+    try {
+      const { error } = await supabase
+        .from("candidates")
+        .delete()
+        .eq("id", candidate.id)
+
+      if (error) throw error
+
+      toast.success("Candidate deleted successfully!")
+      router.refresh()
+    } catch (err: any) {
+      toast.error(err.message || "Failed to delete candidate")
+    }
+  }
+
   return (
     <DropdownMenu>
       <DropdownMenuTrigger className={cn(buttonVariants({ variant: "ghost", size: "icon" }), "h-8 w-8 p-0")}>
@@ -68,6 +92,13 @@ const ActionCell = ({ candidate }: { candidate: Candidate }) => {
           }}
         >
           Copy Email
+        </DropdownMenuItem>
+        <DropdownMenuSeparator />
+        <DropdownMenuItem
+          onClick={handleDelete}
+          className="text-rose-600 focus:text-rose-600 focus:bg-rose-50 dark:text-rose-400 dark:focus:text-rose-400 dark:focus:bg-rose-950/30 cursor-pointer"
+        >
+          <Trash2 className="mr-2 h-4 w-4" /> Delete Candidate
         </DropdownMenuItem>
       </DropdownMenuContent>
     </DropdownMenu>

@@ -5,6 +5,7 @@ import { Badge } from "@/components/ui/badge"
 import { buttonVariants } from "@/components/ui/button"
 import Link from "next/link"
 import { ArrowLeft, Edit, Download, Mail, Phone, MapPin, Briefcase, Building, FileText, ImageIcon } from "lucide-react"
+import { DeleteCandidateButton } from "./delete-button"
 
 export default async function CandidateDetailsPage({
   params,
@@ -37,9 +38,10 @@ export default async function CandidateDetailsPage({
           <Link href={`/candidates/${candidate.id}/edit`} className={buttonVariants({ variant: "outline" })}>
             <Edit className="mr-2 h-4 w-4" /> Edit Profile
           </Link>
-          <a href={candidate.resume_url} target="_blank" rel="noopener noreferrer" className={buttonVariants({})}>
+          <a href={candidate.resume_url} target="_blank" rel="noopener noreferrer" className={buttonVariants({ variant: "outline" })}>
             <Download className="mr-2 h-4 w-4" /> Download Resume
           </a>
+          <DeleteCandidateButton id={candidate.id} />
         </div>
       </div>
 
