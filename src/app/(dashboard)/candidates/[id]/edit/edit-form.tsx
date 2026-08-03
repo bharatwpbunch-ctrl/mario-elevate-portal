@@ -42,7 +42,7 @@ const formSchema = z.object({
   noticePeriod: z.string().optional(),
   currentCtc: z.string().optional(),
   expectedCtc: z.string().optional(),
-  status: z.enum(["Pending", "Offered", "Selected", "Rejected"]).default("Pending"),
+  status: z.enum(["New", "Interested", "Shortlisted", "Interview lineup", "Offered", "Rejected", "On Hold", "Joined"]).default("New"),
   offeredCtc: z.string().optional(),
   jobType: z.string().optional(),
 })
@@ -69,7 +69,7 @@ export default function EditCandidateForm({ candidate }: { candidate: any }) {
       noticePeriod: candidate.notice_period || "",
       currentCtc: candidate.current_ctc || "",
       expectedCtc: candidate.expected_ctc || "",
-      status: candidate.status || "Pending",
+      status: candidate.status || "New",
       offeredCtc: candidate.offered_ctc || "",
       jobType: candidate.job_type || "",
     },
@@ -340,10 +340,14 @@ export default function EditCandidateForm({ candidate }: { candidate: any }) {
                       </SelectTrigger>
                     </FormControl>
                     <SelectContent>
-                      <SelectItem value="Pending">Pending</SelectItem>
-                      <SelectItem value="Selected">Selected</SelectItem>
+                      <SelectItem value="New">New</SelectItem>
+                      <SelectItem value="Interested">Interested</SelectItem>
+                      <SelectItem value="Shortlisted">Shortlisted</SelectItem>
+                      <SelectItem value="Interview lineup">Interview lineup</SelectItem>
                       <SelectItem value="Offered">Offered</SelectItem>
                       <SelectItem value="Rejected">Rejected</SelectItem>
+                      <SelectItem value="On Hold">On Hold</SelectItem>
+                      <SelectItem value="Joined">Joined</SelectItem>
                     </SelectContent>
                   </Select>
                   <FormMessage />

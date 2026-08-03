@@ -17,7 +17,7 @@ CREATE TABLE candidates (
   notice_period TEXT,
   current_ctc TEXT,
   expected_ctc TEXT,
-  status TEXT DEFAULT 'Pending',
+  status TEXT DEFAULT 'New',
   offered_ctc TEXT,
   job_type TEXT,
   created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),

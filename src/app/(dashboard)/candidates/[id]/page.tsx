@@ -127,8 +127,8 @@ export default async function CandidateDetailsPage({
             <CardContent className="space-y-4">
               <div className="flex justify-between items-center">
                 <div className="font-medium">Status</div>
-                <Badge variant={candidate.status === 'Offered' || candidate.status === 'Selected' ? 'default' : candidate.status === 'Rejected' ? 'destructive' : 'secondary'}>
-                  {candidate.status || "Pending"}
+                <Badge variant={candidate.status === 'Offered' || candidate.status === 'Joined' || candidate.status === 'Shortlisted' ? 'default' : candidate.status === 'Rejected' ? 'destructive' : 'secondary'}>
+                  {candidate.status || "New"}
                 </Badge>
               </div>
               {candidate.notice_period && (

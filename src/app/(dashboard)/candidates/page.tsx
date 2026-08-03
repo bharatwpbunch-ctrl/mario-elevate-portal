@@ -58,7 +58,7 @@ export default function CandidatesPage() {
       "Experience (Years)": c.experience_years,
       "Location": c.location || "",
       "Skills": Array.isArray(c.skills) ? c.skills.join(", ") : c.skills,
-      "Status": c.status || "Pending",
+      "Status": c.status || "New",
       "Notice Period": c.notice_period || "",
       "Current CTC": c.current_ctc || "",
       "Expected CTC": c.expected_ctc || "",
