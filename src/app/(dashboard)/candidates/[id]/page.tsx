@@ -38,7 +38,7 @@ export default async function CandidateDetailsPage({
           <Link href={`/candidates/${candidate.id}/edit`} className={buttonVariants({ variant: "outline" })}>
             <Edit className="mr-2 h-4 w-4" /> Edit Profile
           </Link>
-          <a href={candidate.resume_url} target="_blank" rel="noopener noreferrer" className={buttonVariants({ variant: "outline" })}>
+          <a href={candidate.resume_url} target="_blank" rel="noopener noreferrer" className={buttonVariants({})}>
             <Download className="mr-2 h-4 w-4" /> Download Resume
           </a>
           <DeleteCandidateButton id={candidate.id} />
