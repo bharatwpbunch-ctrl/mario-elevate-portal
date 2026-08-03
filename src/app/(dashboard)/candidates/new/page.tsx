@@ -15,6 +15,8 @@ import { readFileAsBase64 } from "@/lib/read-file"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Textarea } from "@/components/ui/textarea"
+import { UploadCloud, CheckCircle2, Loader2 } from "lucide-react"
+import { cn } from "@/lib/utils"
 import {
   Select,
   SelectContent,
@@ -60,6 +62,7 @@ export default function AddCandidatePage() {
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [resumeFile, setResumeFile] = useState<File | null>(null)
   const [isExtracting, setIsExtracting] = useState(false)
+  const [isDragging, setIsDragging] = useState(false)
   const router = useRouter()
   const supabase = createClient()
 
@@ -88,9 +91,91 @@ export default function AddCandidatePage() {
 
   const watchStatus = form.watch("status")
 
+  const handleResumeFile = async (file: File) => {
+    const isWord = file.name.endsWith(".docx") || file.name.endsWith(".doc") || file.type === "application/vnd.openxmlformats-officedocument.wordprocessingml.document" || file.type === "application/msword";
+    const isPdf = file.type === "application/pdf" || file.name.endsWith(".pdf");
+    const isImage = file.type.startsWith("image/") || file.name.endsWith(".png") || file.name.endsWith(".jpg") || file.name.endsWith(".jpeg");
+
+    if (!isPdf && !isWord && !isImage) {
+      toast.error("Please select a valid PDF, Word, or Image file")
+      setResumeFile(null)
+      return
+    }
+    if (file.size > MAX_FILE_SIZE) {
+      toast.error("File size exceeds 10MB limit")
+      setResumeFile(null)
+      return
+    }
+    setResumeFile(file)
+    
+    try {
+      setIsExtracting(true)
+      let text = ""
+      let result: { data?: any; error?: string } = {}
+
+      if (isPdf) {
+        text = await extractTextFromPDF(file)
+        result = await parseResumeWithAI(text)
+      } else if (isWord) {
+        text = await extractTextFromWord(file)
+        result = await parseResumeWithAI(text)
+      } else if (isImage) {
+        const base64 = await readFileAsBase64(file)
+        result = await parseResumeImageWithAI(base64, file.type)
+      }
+      
+      if (result.error) {
+        console.warn("AI extraction failed, using regex fallback:", result.error)
+        toast.warning("AI parser is busy. Falling back to local backup parser for basic details.")
+        
+        const info = parseResumeText(text)
+        let updated = false
+        if (info.name) {
+          form.setValue('fullName', info.name)
+          updated = true
+        }
+        if (info.email) {
+          form.setValue('email', info.email)
+          updated = true
+        }
+        if (info.phone) {
+          form.setValue('phone', info.phone)
+          updated = true
+        }
+        
+        if (!updated) {
+          toast.error("Could not extract any details from resume. Please fill manually.")
+        }
+        return
+      }
+      
+      const info = result.data
+      if (info) {
+        if (info.fullName) form.setValue('fullName', info.fullName)
+        if (info.email) form.setValue('email', info.email)
+        if (info.phone) form.setValue('phone', info.phone)
+        if (info.occupation) form.setValue('occupation', info.occupation)
+        if (info.experienceYears !== undefined) form.setValue('experienceYears', info.experienceYears)
+        if (info.currentCompany) form.setValue('currentCompany', info.currentCompany)
+        if (info.currentDesignation) form.setValue('currentDesignation', info.currentDesignation)
+        if (info.location) form.setValue('location', info.location)
+        if (info.preferredLocation) form.setValue('preferredLocation', info.preferredLocation)
+        if (info.skills && info.skills.length > 0) {
+          form.setValue('skills', info.skills.join(', '))
+        }
+        toast.success("AI successfully extracted details from resume!")
+      }
+    } catch (err) {
+      console.error("Failed to parse resume", err)
+      toast.error("Could not parse resume automatically. Please enter details manually.")
+    } finally {
+      setIsExtracting(false)
+    }
+  }
+
   async function onSubmit(values: z.infer<typeof formSchema>) {
     if (!resumeFile) {
-      toast.error("Please upload a resume (PDF)")
+      toast.error("Please upload a resume (PDF, Word, or Image)")
       return
     }
 
@@ -471,101 +556,70 @@ export default function AddCandidatePage() {
               <CardDescription>Upload the candidate's CV as a PDF, Word, or Image file (Max 10MB).</CardDescription>
             </CardHeader>
             <CardContent>
-              <div className="grid w-full max-w-sm items-center gap-1.5">
-                <Input 
-                  id="resume" 
-                  type="file" 
-                  accept="application/pdf,application/vnd.openxmlformats-officedocument.wordprocessingml.document,application/msword,image/png,image/jpeg,image/jpg"
-                  disabled={isExtracting}
-                  onChange={async (e) => {
-                    const file = e.target.files?.[0]
+              <div className="flex items-center justify-center w-full">
+                <label 
+                  htmlFor="resume" 
+                  className={cn(
+                    "flex flex-col items-center justify-center w-full h-40 border-2 border-dashed rounded-lg cursor-pointer transition-colors",
+                    isDragging 
+                      ? "border-blue-500 bg-blue-50/50 dark:border-blue-400 dark:bg-blue-950/20" 
+                      : "border-zinc-300 bg-zinc-50 dark:border-zinc-700 dark:bg-zinc-900 hover:bg-zinc-100 dark:hover:bg-zinc-800"
+                  )}
+                  onDragOver={(e) => {
+                    e.preventDefault()
+                    setIsDragging(true)
+                  }}
+                  onDragLeave={(e) => {
+                    e.preventDefault()
+                    setIsDragging(false)
+                  }}
+                  onDrop={async (e) => {
+                    e.preventDefault()
+                    setIsDragging(false)
+                    if (isExtracting) return
+                    const file = e.dataTransfer.files?.[0]
                     if (file) {
-                      const isWord = file.name.endsWith(".docx") || file.name.endsWith(".doc") || file.type === "application/vnd.openxmlformats-officedocument.wordprocessingml.document" || file.type === "application/msword";
-                      const isPdf = file.type === "application/pdf" || file.name.endsWith(".pdf");
-                      const isImage = file.type.startsWith("image/") || file.name.endsWith(".png") || file.name.endsWith(".jpg") || file.name.endsWith(".jpeg");
-
-                      if (!isPdf && !isWord && !isImage) {
-                        toast.error("Please select a valid PDF, Word, or Image file")
-                        e.target.value = ''
-                        setResumeFile(null)
-                        return
-                      }
-                      if (file.size > MAX_FILE_SIZE) {
-                        toast.error("File size exceeds 10MB limit")
-                        e.target.value = ''
-                        setResumeFile(null)
-                        return
-                      }
-                      setResumeFile(file)
-                      
-                      try {
-                        setIsExtracting(true)
-                        let text = ""
-                        let result: { data?: any; error?: string } = {}
-
-                        if (isPdf) {
-                          text = await extractTextFromPDF(file)
-                          result = await parseResumeWithAI(text)
-                        } else if (isWord) {
-                          text = await extractTextFromWord(file)
-                          result = await parseResumeWithAI(text)
-                        } else if (isImage) {
-                          const base64 = await readFileAsBase64(file)
-                          result = await parseResumeImageWithAI(base64, file.type)
-                        }
-                        
-                        if (result.error) {
-                          console.warn("AI extraction failed, using regex fallback:", result.error)
-                          toast.warning("AI parser is busy. Falling back to local backup parser for basic details.")
-                          
-                          const info = parseResumeText(text)
-                          let updated = false
-                          if (info.name) {
-                            form.setValue('fullName', info.name)
-                            updated = true
-                          }
-                          if (info.email) {
-                            form.setValue('email', info.email)
-                            updated = true
-                          }
-                          if (info.phone) {
-                            form.setValue('phone', info.phone)
-                            updated = true
-                          }
-                          
-                          if (!updated) {
-                            toast.error("Could not extract any details from resume. Please fill manually.")
-                          }
-                          return
-                        }
-                        
-                        const info = result.data
-                        if (info) {
-                          if (info.fullName) form.setValue('fullName', info.fullName)
-                          if (info.email) form.setValue('email', info.email)
-                          if (info.phone) form.setValue('phone', info.phone)
-                          if (info.occupation) form.setValue('occupation', info.occupation)
-                          if (info.experienceYears !== undefined) form.setValue('experienceYears', info.experienceYears)
-                          if (info.currentCompany) form.setValue('currentCompany', info.currentCompany)
-                          if (info.currentDesignation) form.setValue('currentDesignation', info.currentDesignation)
-                          if (info.location) form.setValue('location', info.location)
-                          if (info.preferredLocation) form.setValue('preferredLocation', info.preferredLocation)
-                          if (info.skills && info.skills.length > 0) {
-                            form.setValue('skills', info.skills.join(', '))
-                          }
-                          toast.success("AI successfully extracted details from resume!")
-                        }
-                      } catch (err) {
-                        console.error("Failed to parse PDF", err)
-                        toast.error("Could not parse resume automatically. Please enter details manually.")
-                      } finally {
-                        setIsExtracting(false)
-                      }
-                    } else {
-                      setResumeFile(null)
+                      await handleResumeFile(file)
                     }
                   }}
-                />
+                >
+                  <div className="flex flex-col items-center justify-center pt-5 pb-6 text-center px-4">
+                    {isExtracting ? (
+                      <Loader2 className="w-8 h-8 mb-3 text-zinc-500 animate-spin" />
+                    ) : resumeFile ? (
+                      <CheckCircle2 className="w-8 h-8 mb-3 text-emerald-500" />
+                    ) : (
+                      <UploadCloud className="w-8 h-8 mb-3 text-zinc-500 dark:text-zinc-400" />
+                    )}
+                    
+                    <p className="mb-1 text-sm text-zinc-500 dark:text-zinc-400">
+                      <span className="font-semibold">
+                        {isExtracting 
+                          ? "Extracting details..." 
+                          : resumeFile 
+                            ? "File selected" 
+                            : "Click to select or drag and drop"}
+                      </span>
+                    </p>
+                    
+                    <p className="text-xs text-zinc-400 dark:text-zinc-500">
+                      {resumeFile ? `${resumeFile.name} (${(resumeFile.size / 1024 / 1024).toFixed(2)} MB)` : "PDF, Word, or Image up to 10MB"}
+                    </p>
+                  </div>
+                  <input 
+                    id="resume" 
+                    type="file" 
+                    className="hidden" 
+                    accept="application/pdf,application/vnd.openxmlformats-officedocument.wordprocessingml.document,application/msword,image/png,image/jpeg,image/jpg"
+                    disabled={isExtracting}
+                    onChange={async (e) => {
+                      const file = e.target.files?.[0]
+                      if (file) {
+                        await handleResumeFile(file)
+                      }
+                    }}
+                  />
+                </label>
               </div>
             </CardContent>
           </Card>
